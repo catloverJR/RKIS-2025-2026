@@ -6,10 +6,9 @@ namespace TodoList
 	{
 		public static void Main()
 		{
-			Console.WriteLine("Работу выполнил: Измайлов");
+			Console.WriteLine("Работу выполнили: Измайлов и Кузнецова");
 
-			// Инициализация объектного зашифрованного хранилища данных через интерфейс контракта
-			AppInfo.Storage = new FileStorage(AppInfo.TodoFilePath, AppInfo.ProfileFilePath);
+			AppInfo.Storage = new DbDataStorage("todo.db");
 
 			AppInfo.CurrentProfile = AppInfo.Storage.LoadProfile();
 			AppInfo.Todos = AppInfo.Storage.LoadTodos();
@@ -20,7 +19,7 @@ namespace TodoList
 			}
 			else
 			{
-				Console.WriteLine($"Добро пожаловать назад, {AppInfo.CurrentProfile.FirstName}!");
+				Console.WriteLine("Добро пожаловать назад, " + AppInfo.CurrentProfile.FirstName + "!");
 			}
 
 			while (true)
@@ -46,30 +45,22 @@ namespace TodoList
 				}
 				catch (InvalidCommandException ex)
 				{
-					Console.WriteLine($"Ошибка команды: {ex.Message}");
+					Console.WriteLine("Ошибка команды: " + ex.Message);
 				}
 				catch (InvalidArgumentException ex)
 				{
-					Console.WriteLine($"Ошибка аргументов: {ex.Message}");
-				}
-				catch (TaskNotFoundException ex)
-				{
-					Console.WriteLine($"Ошибка задачи: {ex.Message}");
-				}
-				catch (EmptyStackException ex)
-				{
-					Console.WriteLine($"Ошибка истории: {ex.Message}");
+					Console.WriteLine("Ошибка аргументов: " + ex.Message);
 				}
 				catch (Exception ex)
 				{
-					Console.WriteLine($"Неожиданная системная ошибка приложения: {ex.Message}");
+					Console.WriteLine("Системная ошибка работы с БД: " + ex.Message);
 				}
 			}
 		}
 
 		private static void InitializeUserProfile()
 		{
-			Console.WriteLine("Пожалуйста, заполните данные профиля.");
+			Console.WriteLine("Пожалуйста, заполните данные профиля для сохранения в БД.");
 
 			Console.Write("Введите ваше имя: ");
 			string firstName = Console.ReadLine();
