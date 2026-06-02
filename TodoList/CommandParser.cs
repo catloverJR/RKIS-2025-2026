@@ -6,21 +6,32 @@ namespace TodoList
 {
 	public static class CommandParser
 	{
+		private static readonly Dictionary<string, Func<string, ICommand>> _linqCommands = new Dictionary<string, Func<string, ICommand>>(StringComparer.OrdinalIgnoreCase)
+		{
+			{ "search", (args) => new SearchCommand(args) }
+		};
+
 		public static ICommand Parse(string input)
 		{
 			string[] inputParts = input.Trim().Split(new[] { ' ' }, 2);
 			string commandName = inputParts[0].ToLower();
 			string args = inputParts.Length > 1 ? inputParts[1] : string.Empty;
 
+			if (_linqCommands.TryGetValue(commandName, out var commandFactory))
+			{
+				return commandFactory(args);
+			}
+
 			return commandName switch
 			{
 				"help" => new HelpCommand(),
-				"profile" => new ProfileCommand(),
+				"profile" => new ProfileCommand(AppInfo.CurrentProfile),
 				"exit" => new ExitCommand(),
 				"add" => ParseAddCommand(args),
 				"view" => ParseViewCommand(args),
 				"status" => ParseStatusCommand(args),
 				"delete" => ParseDeleteCommand(args),
+				"undo" => new UndoCommand(),
 				_ => HandleUnknownCommand(commandName)
 			};
 		}
@@ -32,7 +43,7 @@ namespace TodoList
 				Console.WriteLine("Ошибка: Команда add требует текст задачи.");
 				return null;
 			}
-			return new AddCommand { TaskText = args.Trim('"') };
+			return new AddCommand { TaskText = args.Trim('\"') };
 		}
 
 		private static ICommand ParseStatusCommand(string args)
@@ -42,27 +53,31 @@ namespace TodoList
 			{
 				if (Enum.TryParse<TodoStatus>(parts[1], true, out TodoStatus status))
 				{
-					return new StatusCommand(index, status);
+					return new StatusCommand(AppInfo.Todos, AppInfo.TodoFilePath, index, status);
 				}
 			}
-			Console.WriteLine("Ошибка: Использование: status <индекс> <notstarted|inprogress|completed|postponed|failed>");
+			Console.WriteLine("Ошибка: Неверный формат команды status. Используйте: status <индекс> <статус>");
 			return null;
 		}
 
 		private static ICommand ParseViewCommand(string args)
 		{
-			var command = new ViewCommand();
-			if (string.IsNullOrWhiteSpace(args)) return command;
+			var command = new ViewCommand(AppInfo.Todos);
+			if (string.IsNullOrWhiteSpace(args))
+			{
+				command.ShowAll = true;
+				return command;
+			}
 
-			string[] flags = args.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+			string[] flags = args.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 			foreach (var flag in flags)
 			{
-				switch (flag.ToLower().TrimStart('-'))
+				switch (flag.ToLower())
 				{
-					case "i": case "index": command.ShowIndex = true; break;
-					case "s": case "status": command.ShowStatus = true; break;
-					case "d": case "date": command.ShowDate = true; break;
-					case "a": case "all": command.ShowAll = true; break;
+					case "-i": command.ShowIndex = true; break;
+					case "-s": command.ShowStatus = true; break;
+					case "-d": command.ShowDate = true; break;
+					case "-a": command.ShowAll = true; break;
 				}
 			}
 			return command;
@@ -70,16 +85,17 @@ namespace TodoList
 
 		private static ICommand ParseDeleteCommand(string args)
 		{
-			if (int.TryParse(args, out int index))
+			if (int.TryParse(args.Trim(), out int index))
 			{
-				return null;
+				return new DeleteCommand(AppInfo.Todos, AppInfo.TodoFilePath, index);
 			}
+			Console.WriteLine("Ошибка: Команда delete требует числовой индекс задачи.");
 			return null;
 		}
 
-		private static ICommand HandleUnknownCommand(string name)
+		private static ICommand HandleUnknownCommand(string commandName)
 		{
-			Console.WriteLine($"Ошибка: Неизвестная команда '{name}'. Введите 'help' для списка команд.");
+			Console.WriteLine($"Ошибка: Неизвестная команда '{commandName}'. Введите 'help' для списка команд.");
 			return null;
 		}
 	}
@@ -89,30 +105,33 @@ namespace TodoList
 		public void Execute()
 		{
 			Console.WriteLine("""
-            Доступные команды:
-            help — список команд
-            profile — данные профиля
-            add "текст" — добавить задачу
-            status <idx> <status> — изменить статус задачи
-            view [i, s, d, a] — просмотр списка (flags: index, status, date, all)
-            exit — выход из программы
-            """);
+
+			Доступные команды:
+			help — список команд
+
+			profile — данные профиля
+
+			add "текст" — добавить задачу
+
+			status<idx> < status > — изменить статус задачи
+
+			view[i, s, d, a] — просмотр списка(flags: index, status, date, all)
+
+			search[параметры] — поиск и фильтрация задач через LINQ
+
+			exit — выход из программы
+
+			""");
 		}
+		public void Undo() { }
 	}
 
 	public class ExitCommand : ICommand
 	{
-		public void Execute() => Console.WriteLine("Завершение работы...");
+		public void Execute() => Console.WriteLine("Завершение работы...\");
+		public void Undo() { }
 	}
 
-	public class ProfileCommand : ICommand
-	{
-		public void Execute()
-		{
-			if (AppInfo.CurrentProfile != null)
-				Console.WriteLine(AppInfo.CurrentProfile.GetInfo());
-		}
-	}
 	public class UndoCommand : ICommand
 	{
 		public void Execute()
@@ -129,23 +148,6 @@ namespace TodoList
 				Console.WriteLine("Нечего отменять.");
 			}
 		}
-		public void Undo() { /* Не применимо */ }
-	}
-
-	public class RedoCommand : ICommand
-	{
-		public void Execute()
-		{
-			if (AppInfo.RedoStack.Count > 0)
-			{
-				ICommand command = AppInfo.RedoStack.Pop();
-				command.Execute();
-			}
-			else
-			{
-				Console.WriteLine("Нечего возвращать.");
-			}
-		}
-		public void Undo() { /* Не применимо */ }
+		public void Undo() { }
 	}
 }
