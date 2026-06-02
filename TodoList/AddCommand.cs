@@ -16,9 +16,10 @@ namespace TodoList
 			AppInfo.RedoStack.Clear();
 			AppInfo.UndoStack.Push(this);
 
-			FileManager.SaveTasks(AppInfo.Todos, AppInfo.TodoFilePath);
+			AppInfo.Storage.SaveTodos(AppInfo.Todos);
 			Console.WriteLine("Задача добавлена.");
 		}
+	}
 
 		public void Undo()
 		{

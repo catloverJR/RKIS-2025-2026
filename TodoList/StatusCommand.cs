@@ -26,7 +26,7 @@ namespace TodoList
 			}
 
 			item.ChangeStatus(_newStatus);
-			FileManager.SaveTasks(_todoList, _todoFilePath);
+			AppInfo.Storage.SaveTodos(_todoList);
 			Console.WriteLine($"Статус задачи {_index} изменен на: {item.GetStatusString()}");
 		}
 

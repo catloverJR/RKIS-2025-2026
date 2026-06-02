@@ -156,7 +156,7 @@ namespace TodoList
 				ICommand command = AppInfo.UndoStack.Pop();
 				command.Undo();
 				AppInfo.RedoStack.Push(command);
-				FileManager.SaveTasks(AppInfo.Todos, AppInfo.TodoFilePath);
+				AppInfo.Storage.SaveTodos(AppInfo.Todos);
 			}
 			else
 			{

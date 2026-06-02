@@ -8,10 +8,11 @@ namespace TodoList
 		{
 			Console.WriteLine("Работу выполнил: Измайлов");
 
-			FileManager.EnsureDataDirectory("data");
+			// Инициализация объектного зашифрованного хранилища данных через интерфейс контракта
+			AppInfo.Storage = new FileStorage(AppInfo.TodoFilePath, AppInfo.ProfileFilePath);
 
-			AppInfo.CurrentProfile = FileManager.LoadProfile(AppInfo.ProfileFilePath);
-			AppInfo.Todos = FileManager.LoadTasks(AppInfo.TodoFilePath);
+			AppInfo.CurrentProfile = AppInfo.Storage.LoadProfile();
+			AppInfo.Todos = AppInfo.Storage.LoadTodos();
 
 			if (AppInfo.CurrentProfile == null)
 			{
@@ -90,7 +91,7 @@ namespace TodoList
 			}
 
 			AppInfo.CurrentProfile = new Profile(firstName, lastName, birthYear);
-			FileManager.SaveProfile(AppInfo.CurrentProfile, AppInfo.ProfileFilePath);
+			AppInfo.Storage.SaveProfile(AppInfo.CurrentProfile);
 		}
 	}
 }
