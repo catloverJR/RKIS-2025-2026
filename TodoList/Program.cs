@@ -29,16 +29,39 @@ namespace TodoList
 
 				if (string.IsNullOrWhiteSpace(input)) continue;
 
-				ICommand command = CommandParser.Parse(input);
-
-				if (command != null)
+				try
 				{
-					if (command is ExitCommand)
+					ICommand command = CommandParser.Parse(input);
+
+					if (command != null)
 					{
+						if (command is ExitCommand)
+						{
+							command.Execute();
+							break;
+						}
 						command.Execute();
-						break;
 					}
-					command.Execute();
+				}
+				catch (InvalidCommandException ex)
+				{
+					Console.WriteLine($"Ошибка команды: {ex.Message}");
+				}
+				catch (InvalidArgumentException ex)
+				{
+					Console.WriteLine($"Ошибка аргументов: {ex.Message}");
+				}
+				catch (TaskNotFoundException ex)
+				{
+					Console.WriteLine($"Ошибка задачи: {ex.Message}");
+				}
+				catch (EmptyStackException ex)
+				{
+					Console.WriteLine($"Ошибка истории: {ex.Message}");
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"Неожиданная системная ошибка приложения: {ex.Message}");
 				}
 			}
 		}
@@ -60,8 +83,10 @@ namespace TodoList
 			{
 				Console.Write("Введите ваш год рождения: ");
 				if (int.TryParse(Console.ReadLine(), out birthYear) && birthYear > 1900 && birthYear <= DateTime.Now.Year)
+				{
 					break;
-				Console.WriteLine("Ошибка: Введите корректный год.");
+				}
+				Console.WriteLine("Ошибка: Некорректный год рождения.");
 			}
 
 			AppInfo.CurrentProfile = new Profile(firstName, lastName, birthYear);

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace TodoList
 {
@@ -13,6 +12,11 @@ namespace TodoList
 
 		public static ICommand Parse(string input)
 		{
+			if (string.IsNullOrWhiteSpace(input))
+			{
+				return null;
+			}
+
 			string[] inputParts = input.Trim().Split(new[] { ' ' }, 2);
 			string commandName = inputParts[0].ToLower();
 			string args = inputParts.Length > 1 ? inputParts[1] : string.Empty;
@@ -32,7 +36,7 @@ namespace TodoList
 				"status" => ParseStatusCommand(args),
 				"delete" => ParseDeleteCommand(args),
 				"undo" => new UndoCommand(),
-				_ => HandleUnknownCommand(commandName)
+				_ => throw new InvalidCommandException($"Команда '{commandName}' не зарегистрирована в обработчике системы.")
 			};
 		}
 
@@ -40,8 +44,7 @@ namespace TodoList
 		{
 			if (string.IsNullOrWhiteSpace(args))
 			{
-				Console.WriteLine("Ошибка: Команда add требует текст задачи.");
-				return null;
+				throw new InvalidArgumentException("Синтаксическая ошибка: Команда 'add' требует обязательного текстового описания задачи.");
 			}
 			return new AddCommand { TaskText = args.Trim('\"') };
 		}
@@ -55,9 +58,9 @@ namespace TodoList
 				{
 					return new StatusCommand(AppInfo.Todos, AppInfo.TodoFilePath, index, status);
 				}
+				throw new InvalidArgumentException($"Указанный статус '{parts[1]}' не поддерживается системой.");
 			}
-			Console.WriteLine("Ошибка: Неверный формат команды status. Используйте: status <индекс> <статус>");
-			return null;
+			throw new InvalidArgumentException("Синтаксическая ошибка: Формат команды должен соответствовать шаблону: status <индекс> <статус>");
 		}
 
 		private static ICommand ParseViewCommand(string args)
@@ -78,6 +81,7 @@ namespace TodoList
 					case "-s": command.ShowStatus = true; break;
 					case "-d": command.ShowDate = true; break;
 					case "-a": command.ShowAll = true; break;
+					default: throw new InvalidArgumentException($"К команде 'view' применен неподдерживаемый аргумент отображения: '{flag}'.");
 				}
 			}
 			return command;
@@ -89,14 +93,7 @@ namespace TodoList
 			{
 				return new DeleteCommand(AppInfo.Todos, AppInfo.TodoFilePath, index);
 			}
-			Console.WriteLine("Ошибка: Команда delete требует числовой индекс задачи.");
-			return null;
-		}
-
-		private static ICommand HandleUnknownCommand(string commandName)
-		{
-			Console.WriteLine($"Ошибка: Неизвестная команда '{commandName}'. Введите 'help' для списка команд.");
-			return null;
+			throw new InvalidArgumentException("Синтаксическая ошибка: Команда 'delete' принимает строго целочисленный идентификатор целевой задачи.");
 		}
 	}
 
@@ -128,7 +125,7 @@ namespace TodoList
 
 	public class ExitCommand : ICommand
 	{
-		public void Execute() => Console.WriteLine("Завершение работы...\");
+		public void Execute() => Console.WriteLine("Завершение работы...");
 		public void Undo() { }
 	}
 
@@ -145,7 +142,7 @@ namespace TodoList
 			}
 			else
 			{
-				Console.WriteLine("Нечего отменять.");
+				throw new EmptyStackException("Невозможно отменить действие: стек истории операций пуст.");
 			}
 		}
 		public void Undo() { }

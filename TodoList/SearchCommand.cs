@@ -42,8 +42,7 @@ namespace TodoList
 				}
 				else
 				{
-					Console.WriteLine($"Ошибка: Некорректный статус '{statusStr}'.");
-					return;
+					throw new InvalidArgumentException($"Недопустимое значение статуса '{statusStr}' для фильтрации.");
 				}
 			}
 
@@ -55,8 +54,7 @@ namespace TodoList
 				}
 				else
 				{
-					Console.WriteLine("Ошибка: Неверный формат даты --from. Используйте yyyy-MM-dd.");
-					return;
+					throw new InvalidArgumentException("Некорректный формат даты в параметре --from. Ожидается: yyyy-MM-dd");
 				}
 			}
 			if (argsMap.TryGetValue("--to", out var toStr))
@@ -67,8 +65,7 @@ namespace TodoList
 				}
 				else
 				{
-					Console.WriteLine("Ошибка: Неверный формат даты --to. Используйте yyyy-MM-dd.");
-					return;
+					throw new InvalidArgumentException("Некорректный формат даты в параметре --to. Ожидается: yyyy-MM-dd");
 				}
 			}
 
@@ -87,6 +84,10 @@ namespace TodoList
 						? query.OrderByDescending(q => q.Task.LastUpdate)
 						: query.OrderBy(q => q.Task.LastUpdate);
 				}
+				else
+				{
+					throw new InvalidArgumentException($"Неизвестный параметр сортировки '{sortBy}'. Доступны: text, date.");
+				}
 			}
 
 			if (argsMap.TryGetValue("--top", out var topStr))
@@ -97,8 +98,7 @@ namespace TodoList
 				}
 				else
 				{
-					Console.WriteLine("Ошибка: Параметр --top должен быть положительным числом.");
-					return;
+					throw new InvalidArgumentException("Значение параметра --top должно быть положительным целым числом.");
 				}
 			}
 
@@ -134,11 +134,22 @@ namespace TodoList
 			var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 			var tokens = FormatTokens(arguments);
 
+			var validFlags = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+			{
+				"--contains", "--starts-with", "--ends-with", "--status", "--from", "--to", "--sort", "--desc", "--top"
+			};
+
 			for (int i = 0; i < tokens.Count; i++)
 			{
 				if (tokens[i].StartsWith("--"))
 				{
 					string flag = tokens[i];
+
+					if (!validFlags.Contains(flag))
+					{
+						throw new InvalidArgumentException($"Использован неизвестный флаг поиска: '{flag}'.");
+					}
+
 					if (flag.Equals("--desc", StringComparison.OrdinalIgnoreCase) || i + 1 >= tokens.Count || tokens[i + 1].StartsWith("--"))
 					{
 						result[flag] = string.Empty;
@@ -148,6 +159,10 @@ namespace TodoList
 						result[flag] = tokens[i + 1];
 						i++;
 					}
+				}
+				else
+				{
+					throw new InvalidArgumentException($"Обнаружен изолированный аргумент '{tokens[i]}' вне управляющих флагов.");
 				}
 			}
 			return result;
