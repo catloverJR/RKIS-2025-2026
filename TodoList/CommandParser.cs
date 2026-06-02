@@ -36,6 +36,7 @@ namespace TodoList
 				"status" => ParseStatusCommand(args),
 				"delete" => ParseDeleteCommand(args),
 				"undo" => new UndoCommand(),
+				"download" => ParseDownloadCommand(args),
 				_ => throw new InvalidCommandException($"Команда '{commandName}' не зарегистрирована в обработчике системы.")
 			};
 		}
@@ -95,6 +96,21 @@ namespace TodoList
 			}
 			throw new InvalidArgumentException("Синтаксическая ошибка: Команда 'delete' принимает строго целочисленный идентификатор целевой задачи.");
 		}
+
+		private static ICommand ParseDownloadCommand(string args)
+		{
+			if (string.IsNullOrWhiteSpace(args))
+			{
+				throw new InvalidArgumentException("Синтаксическая ошибка: Команда 'download' требует указать количество загрузок.");
+			}
+
+			if (int.TryParse(args.Trim(), out int count) && count > 0)
+			{
+				return new DownloadCommand(count);
+			}
+
+			throw new InvalidArgumentException("Ошибка аргументов: Количество параллельных загрузок должно быть целым положительным числом больше нуля.");
+		}
 	}
 
 	public class HelpCommand : ICommand
@@ -115,6 +131,8 @@ namespace TodoList
 			view[i, s, d, a] — просмотр списка(flags: index, status, date, all)
 
 			search[параметры] — поиск и фильтрация задач через LINQ
+
+			download < кол - во > — запустить параллельную симуляцию скачивания
 
 			exit — выход из программы
 
