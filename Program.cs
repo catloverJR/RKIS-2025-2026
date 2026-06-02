@@ -1,112 +1,96 @@
-﻿namespace TodoList
+﻿using System;
+
+namespace TodoList
 {
-	class Program
+	public class Program
 	{
-		private const string CommandHelp = "help";
-		private const string CommandProfile = "profile";
-		private const string CommandAdd = "add";
-		private const string CommandView = "view";
-		private const string CommandExit = "exit";
-
-		private static string firstName;
-		private static string lastName;
-		private static int birthYear;
-
-		private static string[] todos = new string[2];
-		private static int index = 0;
-
 		public static void Main()
 		{
 			Console.WriteLine("Работу выполнил: Измайлов");
 
-			Console.Write("Введите ваше имя: ");
-			firstName = Console.ReadLine();
-			Console.Write("Введите вашу фамилию: ");
-			lastName = Console.ReadLine();
+			ApiDataStorage cloudStorage = new ApiDataStorage("http://localhost:5000/");
 
-			Console.Write("Введите ваш год рождения: ");
-			birthYear = int.Parse(Console.ReadLine());
-			int age = DateTime.Now.Year - birthYear;
+			AppInfo.CurrentProfile = cloudStorage.LoadProfile();
+			AppInfo.Todos = cloudStorage.LoadTodos();
 
-			Console.WriteLine($"Добавлен пользователь {firstName} {lastName}, возраст - {age}");
+			if (AppInfo.CurrentProfile == null)
+			{
+				InitializeUserProfile();
+			}
+			else
+			{
+				Console.WriteLine($"Добро пожаловать назад, {AppInfo.CurrentProfile.FirstName}!");
+			}
 
 			while (true)
 			{
-				Console.Write("Введите команду: ");
-				string command = Console.ReadLine();
+				Console.Write("\nВведите команду: ");
+				string input = Console.ReadLine();
 
-				if (command == CommandHelp)
+				if (string.IsNullOrWhiteSpace(input)) continue;
+
+				try
 				{
-					ShowHelp();
+					ICommand command = CommandParser.Parse(input);
+
+					if (command != null)
+					{
+						if (command is ExitCommand)
+						{
+							command.Execute();
+							break;
+						}
+						command.Execute();
+					}
 				}
-				else if (command == CommandProfile)
+				catch (InvalidCommandException ex)
 				{
-					ShowProfile();
+					Console.WriteLine($"Ошибка команды: {ex.Message}");
 				}
-				else if (command.StartsWith(CommandAdd))
+				catch (InvalidArgumentException ex)
 				{
-					AddTask(command);
+					Console.WriteLine($"Ошибка аргументов: {ex.Message}");
 				}
-				else if (command == CommandView)
+				catch (TaskNotFoundException ex)
 				{
-					ViewTasks();
+					Console.WriteLine($"Ошибка задачи: {ex.Message}");
 				}
-				else if (command == CommandExit)
+				catch (EmptyStackException ex)
 				{
-					Console.WriteLine("Программа завершена.");
+					Console.WriteLine($"Ошибка истории: {ex.Message}");
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"Неожиданная системная ошибка приложения: {ex.Message}");
+				}
+			}
+		}
+
+		private static void InitializeUserProfile()
+		{
+			Console.WriteLine("Пожалуйста, заполните данные профиля.");
+
+			Console.Write("Введите ваше имя: ");
+			string firstName = Console.ReadLine();
+			if (string.IsNullOrWhiteSpace(firstName)) firstName = "Гость";
+
+			Console.Write("Введите вашу фамилию: ");
+			string lastName = Console.ReadLine();
+			if (string.IsNullOrWhiteSpace(lastName)) lastName = "Гость";
+
+			int birthYear;
+			while (true)
+			{
+				Console.Write("Введите ваш год рождения: ");
+				if (int.TryParse(Console.ReadLine(), out birthYear) && birthYear > 1900 && birthYear <= DateTime.Now.Year)
+				{
 					break;
 				}
-				else
-				{
-					Console.WriteLine("Неизвестная команда. Введите help для списка команд.");
-				}
+				Console.WriteLine("Ошибка: Некорректный год рождения.");
 			}
-		}
 
-		private static void ShowHelp()
-		{
-			Console.WriteLine("""
-            Доступные команды:
-            help — список команд
-            profile — выводит данные профиля
-            add "текст задачи" — добавляет задачу
-            view — просмотр всех задач
-            exit — завершить программу
-            """);
-		}
-
-		private static void ShowProfile()
-		{
-			Console.WriteLine($"{firstName} {lastName}, {birthYear}");
-		}
-
-		private static void AddTask(string command)
-		{
-			string task = command.Split(" ", 2)[1];
-			if (index >= todos.Length)
-			{
-				ExpandArray();
-			}
-			todos[index] = task;
-			index++;
-			Console.WriteLine($"Задача добавлена: {task}");
-		}
-
-		private static void ExpandArray()
-		{
-			string[] newTodos = new string[todos.Length * 2];
-			for (int i = 0; i < todos.Length; i++)
-				newTodos[i] = todos[i];
-			todos = newTodos;
-		}
-
-		private static void ViewTasks()
-		{
-			Console.WriteLine("Список задач:");
-			for (int i = 0; i < index; i++)
-			{
-				Console.WriteLine($"{i + 1}) {todos[i]}");
-			}
+			AppInfo.CurrentProfile = new Profile(firstName, lastName, birthYear);
+			AppInfo.Storage.SaveProfile(AppInfo.CurrentProfile);
 		}
 	}
 }

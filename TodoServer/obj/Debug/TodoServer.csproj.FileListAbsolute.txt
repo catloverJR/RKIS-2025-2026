@@ -1,0 +1,7 @@
+C:\Users\INFINIX\RKIS-2025-2026\TodoServer\obj\Debug\TodoServer.csproj.AssemblyReference.cache
+C:\Users\INFINIX\RKIS-2025-2026\TodoServer\obj\Debug\TodoServer.csproj.CoreCompileInputs.cache
+C:\Users\INFINIX\RKIS-2025-2026\TodoServer\bin\Debug\TodoServer.exe.config
+C:\Users\INFINIX\RKIS-2025-2026\TodoServer\bin\Debug\TodoServer.exe
+C:\Users\INFINIX\RKIS-2025-2026\TodoServer\bin\Debug\TodoServer.pdb
+C:\Users\INFINIX\RKIS-2025-2026\TodoServer\obj\Debug\TodoServer.exe
+C:\Users\INFINIX\RKIS-2025-2026\TodoServer\obj\Debug\TodoServer.pdb
